@@ -12,6 +12,10 @@ on:
       - 'style/*'
       - 'test/*'
 
+permissions: 
+  contents: write
+  pull-requests: write
+
 jobs:
   create-pull-request:
     runs-on: ubuntu-latest
@@ -29,7 +33,7 @@ jobs:
           branch: ${{ github.ref_name }}
           title: 'Auto PR from ${{ github.ref_name }}'
           body: |
-            This is an auto-generated pull request from the branch `${{ github.ref_name }}` to `develop`.
+            This is an auto-generated pull request from the branch `${{ github.ref_name }}` to `development`.
             Please review the changes and merge if appropriate.
           assignees: ${{ github.actor }}
           commit-message: add ${{github.ref_name}}
