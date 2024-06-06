@@ -1,0 +1,49 @@
+name: Auto Create Pull Request
+
+on:
+  push:
+    branches:
+      - 'feat/*'
+      - 'fix/*'
+      - 'docs/*'
+      - 'refactor/*'
+      - 'perf/*'
+      - 'chore/*'
+      - 'style/*'
+      - 'test/*'
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: development
+          branch: ${{ github.ref_name }}
+          title: 'Auto PR from ${{ github.ref_name }}'
+          body: |
+            This is an auto-generated pull request from the branch `${{ github.ref_name }}` to `develop`.
+            Please review the changes and merge if appropriate.
+          assignees: ${{ github.actor }}
+          commit-message: add ${{github.ref_name}}
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+          signoff: false
+          delete-branch: true
+          labels: |
+            automated pr
+            feature
+            bugfix
+          reviewers: kaggwe-marvin
+          milestone: 1
+          draft: false
+
+      - name: Output result
+        run: echo "Pull Request created with number ${{ steps.create_pr.outputs.pull-request-number }}"
