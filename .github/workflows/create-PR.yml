@@ -6,7 +6,7 @@ on:
       - 'feat/*'
       - 'fix/*'
 
-permissions:
+permissions: 
   contents: write
   pull-requests: write
 
@@ -18,6 +18,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Debug Current Branch
+        run: |
+          echo "Current branch: ${{ github.ref_name }}"
+          echo "Checking for differences with base branch..."
+          git fetch origin development
+          git diff --name-only ${{ github.ref_name }} origin/development
+
       - name: Create Pull Request
         id: create_pr
         uses: peter-evans/create-pull-request@v6
@@ -26,11 +33,38 @@ jobs:
           base: development
           branch: ${{ github.ref_name }}
           title: 'Auto PR from ${{ github.ref_name }}'
+          body: |
+            This is an auto-generated pull request from the branch `${{ github.ref_name }}` to `development`.
+            Please review the changes and merge if appropriate.
+          assignees: ${{ github.actor }}
+          commit-message: add ${{github.ref_name}}
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+          signoff: false
+          delete-branch: false
+          labels: |
+            automated pr
+            feature
+            bugfix
+          reviewers: kaggwe-marvin
+          milestone: 1
+          draft: false
 
       - name: Debug Outputs
         run: |
-          echo "Available outputs:"
           echo "Pull Request Number: ${{ steps.create_pr.outputs.pull-request-number }}"
-          echo "Pull Request URL: ${{ steps.create_pr.outputs.pull-request-url }}"
-          echo "Pull Request HTML URL: ${{ steps.create_pr.outputs.pull-request-html-url }}"
           echo "Pull Request Operation: ${{ steps.create_pr.outputs.pull-request-operation }}"
+
+      - name: Auto approve
+        if: steps.create_pr.outputs.pull-request-operation == 'created'
+        run: gh pr review --approve "${{ steps.create_pr.outputs.pull-request-number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Pull Request Automerge
+        if: steps.create_pr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
+          merge-method: squash
