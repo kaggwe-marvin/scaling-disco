@@ -37,7 +37,12 @@ jobs:
 
       - name: Auto approve
         if: env.PR_NUMBER
-        run: gh pr review --approve "${{ env.PR_NUMBER }}"
+        run: |
+          if [ "${{ github.actor }}" != "github-actions[bot]" ]; then
+            gh pr review --approve "${{ env.PR_NUMBER }}"
+          else
+            echo "Skipping approval step as the PR creator is the same as the action runner."
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
