@@ -28,6 +28,8 @@ jobs:
           gh pr create --base development --head ${BRANCH_NAME} --title "${PR_TITLE}" --body "${PR_BODY}" --assignee ${{ github.actor }} --label "automated pr,feature,bugfix" --reviewer kaggwe-marvin --milestone 1
           PR_NUMBER=$(gh pr view --json number --jq '.number')
           echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Output result
         run: |
