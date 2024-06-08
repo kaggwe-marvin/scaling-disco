@@ -46,7 +46,9 @@ jobs:
           draft: false
 
       - name: Output result
-        run: echo "Pull Request created with number ${{ steps.create_pr.outputs.pull-request-number }}"
+        run: |
+          echo "Pull Request created with number ${{ steps.create_pr.outputs.pull-request-number }}"
+          echo "Pull Request created with operation ${{steps.create_pr.outputs.pull-request-operation}}"
 
       - name: Enable Pull Request Automerge
         if: steps.create_pr.outputs.pull-request-operation == 'created'
