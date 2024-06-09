@@ -1,0 +1,75 @@
+name: Auto Create Pull Request
+
+on:
+  push:
+    branches:
+      - 'feat/*'
+      - 'fix/*'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for existing PR
+        id: check_pr
+        run: |
+          PR_EXISTS=$(gh pr list --head ${GITHUB_REF_NAME} --base development --json number --jq '. | length')
+          echo "PR_EXISTS=$PR_EXISTS" >> $GITHUB_ENV
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: env.PR_EXISTS == '0'
+        id: create_pr
+        run: |
+          BRANCH_NAME=${{ github.ref_name }}
+          PR_TITLE="Auto PR from ${BRANCH_NAME}"
+          PR_BODY="This is an auto-generated pull request from the branch '${BRANCH_NAME}' to 'development'.\n\nPlease review the changes and merge if appropriate."
+          PR_URL=$(gh pr create --base development --head ${BRANCH_NAME} --title "${PR_TITLE}" --body "${PR_BODY}" --assignee ${{ github.actor }} --label "automated pr,feature,bugfix" --reviewer kaggwe-marvin --milestone "Release 1.0" --json url --jq '.url')
+          echo "PR_URL=${PR_URL}" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output PR URL
+        if: env.PR_EXISTS == '0'
+        run: |
+          echo "Pull Request created: ${{ env.PR_URL }}"
+
+      - name: Skip PR Creation
+        if: env.PR_EXISTS != '0'
+        run: echo "Pull request already exists. Skipping creation."
+
+      - name: Auto approve
+        if: env.PR_URL
+        run: |
+          if [ "${{ github.actor }}" != "github-actions[bot]" ]; then
+            PR_NUMBER=$(gh pr view ${PR_URL} --json number --jq '.number')
+            gh pr review --approve "${PR_NUMBER}"
+          else
+            echo "Skipping approval step as the PR creator is the same as the action runner."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Pull Request Automerge
+        if: env.PR_URL
+        run: |
+          PR_NUMBER=$(gh pr view ${PR_URL} --json number --jq '.number')
+          gh pr merge --auto --merge "${PR_NUMBER}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply labels to the PR
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
