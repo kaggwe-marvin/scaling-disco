@@ -1,1 +1,1 @@
-# scaling-disco
+# Template repo
